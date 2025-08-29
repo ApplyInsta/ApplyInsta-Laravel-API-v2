@@ -9,19 +9,39 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        $data = $request->validate([
-            'name'     => ['required','string','max:255'],
-            'email'    => ['required','email','unique:users,email'],
-            'password' => ['required','string','min:8'],
+        $validator = Validator::make($request->all(), [
+            'name'     => 'required|string|max:255',
+            'email'    => 'nullable|email|unique:users,email',
+            'phone'    => 'nullable|string|unique:users,phone',
+            'password' => 'required|string|min:6',
         ]);
+
+        if (!$request->email && !$request->phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Either email or phone is required.'
+            ], 422);
+        }
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
 
         $user = User::create([
-            'name' => $data['name'],
-            'email'=> $data['email'],
-            'password' => Hash::make($data['password']),
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'phone'    => $request->phone,
+            'password' => Hash::make($request->password),
         ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'User registered successfully',
+            'data'    => $user
+        ], 201);
 
-        return response()->json(['message' => 'Registered', 'user' => $user], 201);
     }
 
     // SPA cookie/session login (for React web)
